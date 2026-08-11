@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "My Telegram Media Downloader",
+  "version": "1.0.0",
+  "description": "Adds a download button to images and videos opened in Telegram Web's media viewer.",
+  "permissions": [],
+  "host_permissions": [
+    "https://web.telegram.org/*",
+    "https://webk.telegram.org/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://web.telegram.org/*",
+        "https://webk.telegram.org/*"
+      ],
+      "js": ["dist/content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://web.telegram.org/*",
+        "https://webk.telegram.org/*"
+      ],
+      "js": ["dist/mainWorld.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    }
+  ],
+  "minimum_chrome_version": "111"
+}
