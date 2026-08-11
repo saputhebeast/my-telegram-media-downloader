@@ -17,7 +17,7 @@ export function downloadImageDirect(imageUrl) {
  * @returns {Promise<string>} the filename that was saved
  */
 export async function downloadVideo(videoEl, onProgress) {
-  const url = videoEl.currentSrc || videoEl.src;
+  const url = videoEl.src || videoEl.currentSrc;
   if (!url) throw new Error("Video element has no source URL");
 
   const { blob, mimeType } = await downloadStream(url, {

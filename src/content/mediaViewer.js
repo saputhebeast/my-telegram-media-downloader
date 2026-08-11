@@ -58,16 +58,52 @@ function checkMediaViewer() {
   buttons.prepend(createDownloadButton((button) => handleDownloadClick(button)));
 }
 
+// Telegram appears to keep more than one <video>/<img> in the DOM at once
+// (likely for prev/current/next slide transitions — "media-viewer-movers"
+// is plural), so picking the first DOM match can grab a slide that isn't
+// actually on screen. A size/display check alone isn't enough — carousel
+// slides positioned off-screen via CSS transform still report a non-zero
+// size. Instead, pick whichever candidate is rendered closest to the
+// center of the viewport, since that should be the active slide
+// regardless of how the carousel is implemented.
+function isRenderedVisible(el) {
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  const style = window.getComputedStyle(el);
+  if (style.visibility === "hidden" || style.display === "none") return false;
+  if (parseFloat(style.opacity) === 0) return false;
+  return true;
+}
+
+function distanceFromViewportCenter(el) {
+  const rect = el.getBoundingClientRect();
+  const dx = rect.left + rect.width / 2 - window.innerWidth / 2;
+  const dy = rect.top + rect.height / 2 - window.innerHeight / 2;
+  return Math.hypot(dx, dy);
+}
+
+function pickMostCentered(elements) {
+  const candidates = elements.filter(isRenderedVisible);
+  if (candidates.length === 0) return null;
+  return candidates.reduce((best, el) =>
+    distanceFromViewportCenter(el) < distanceFromViewportCenter(best) ? el : best
+  );
+}
+
 function findCurrentMedia() {
   const container = document.querySelector(SELECTORS.mediaViewerWhole);
   const aspecter = container && container.querySelector(SELECTORS.mediaViewerAspecter);
   if (!aspecter) return null;
 
-  const video = aspecter.querySelector("video");
+  const video = pickMostCentered(Array.from(aspecter.querySelectorAll("video")));
   if (video) return { type: "video", element: video };
 
-  const image = aspecter.querySelector(SELECTORS.imageThumbnail);
-  if (image && image.src) return { type: "image", element: image };
+  const images = Array.from(aspecter.querySelectorAll(SELECTORS.imageThumbnail)).filter(
+    (img) => img.src
+  );
+  const image = pickMostCentered(images);
+  if (image) return { type: "image", element: image };
 
   return null;
 }
@@ -89,7 +125,7 @@ async function handleDownloadClick(button) {
 async function handleVideoClick(button, videoEl) {
   setBusy(button, true);
   try {
-    logger.log("Source URL:", videoEl.currentSrc || videoEl.src);
+    logger.log("Source URL:", videoEl.src || videoEl.currentSrc);
     const fileName = await downloadVideo(videoEl, (percent) => {
       logger.log(`Downloading... ${percent}%`);
     });
