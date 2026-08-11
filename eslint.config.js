@@ -19,7 +19,7 @@ export default [
     },
   },
   {
-    files: ["build.js", "vitest.config.js", "eslint.config.js"],
+    files: ["build.js", "package.js", "vitest.config.js", "eslint.config.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
@@ -40,6 +40,6 @@ export default [
     },
   },
   {
-    ignores: ["dist/**", "node_modules/**"],
+    ignores: ["dist/**", "node_modules/**", "release/**"],
   },
 ];
