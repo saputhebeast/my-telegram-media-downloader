@@ -47,18 +47,42 @@ function checkMediaViewer() {
   const container = document.querySelector(SELECTORS.mediaViewerWhole);
   if (!container) return;
 
-  const aspecter = container.querySelector(SELECTORS.mediaViewerAspecter);
   const buttons = container.querySelector(SELECTORS.mediaViewerButtons);
-  if (!aspecter || !buttons) return;
+  if (!buttons) return;
   if (buttons.querySelector(`.${DOWNLOAD_BUTTON_CLASS}`)) return;
 
-  const video = aspecter.querySelector("video");
-  const image = aspecter.querySelector(SELECTORS.imageThumbnail);
+  // The button is injected once per viewer session, but the media inside
+  // it changes as the user navigates next/prev without the viewer closing.
+  // Re-resolve the *current* media at click time rather than capturing it
+  // here, or the button would keep downloading whatever was open first.
+  buttons.prepend(createDownloadButton((button) => handleDownloadClick(button)));
+}
 
-  if (video) {
-    buttons.prepend(createDownloadButton((button) => handleVideoClick(button, video)));
-  } else if (image && image.src) {
-    buttons.prepend(createDownloadButton(() => handleImageClick(image)));
+function findCurrentMedia() {
+  const container = document.querySelector(SELECTORS.mediaViewerWhole);
+  const aspecter = container && container.querySelector(SELECTORS.mediaViewerAspecter);
+  if (!aspecter) return null;
+
+  const video = aspecter.querySelector("video");
+  if (video) return { type: "video", element: video };
+
+  const image = aspecter.querySelector(SELECTORS.imageThumbnail);
+  if (image && image.src) return { type: "image", element: image };
+
+  return null;
+}
+
+async function handleDownloadClick(button) {
+  const media = findCurrentMedia();
+  if (!media) {
+    logger.warn("No video or image found in the media viewer at click time.");
+    return;
+  }
+
+  if (media.type === "video") {
+    await handleVideoClick(button, media.element);
+  } else {
+    handleImageClick(media.element);
   }
 }
 
